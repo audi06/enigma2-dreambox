@@ -2886,17 +2886,43 @@ class InfoBarInstantRecord:
 
 class InfoBarAudioSelection:
 	def __init__(self):
-		self["AudioSelectionAction"] = HelpableActionMap(self, ["InfobarAudioSelectionActions"],
-			{
-				"audioSelection": (self.audioSelection, _("Audio options...")),
-			})
+		self["AudioSelectionAction"] = HelpableActionMap(self, "InfobarAudioSelectionActions", {
+			"audioSelection": (self.audioSelection, _("Audio options...")),
+			"yellow_key": (self.yellow_key, _("Audio options...")),
+			"audioSelectionLong": (self.audioDownmixToggle, _("Toggle Digital downmix...")),
+		}, prio=0, description=_("Audio Actions"))
+
+	def yellow_key(self):
+		from Screens.AudioSelection import AudioSelection
+		self.session.openWithCallback(self.audioSelected, AudioSelection, infobar=self)
 
 	def audioSelection(self):
 		from Screens.AudioSelection import AudioSelection
 		self.session.openWithCallback(self.audioSelected, AudioSelection, infobar=self)
 
 	def audioSelected(self, ret=None):
-		print("[infobar::audioSelected]", ret)
+		print("[InfoBarGenerics] [infobar::audioSelected]", ret)
+
+	def audioDownmixToggle(self, popup=True):
+		if SystemInfo["CanDownmixAC3"]:
+			if config.av.downmix_ac3.value:
+				message = _("Dolby Digital downmix is now") + " " + _("disabled")
+				print('[InfoBarGenerics] [Audio] Dolby Digital downmix is now disabled')
+				config.av.downmix_ac3.setValue(False)
+			else:
+				config.av.downmix_ac3.setValue(True)
+				message = _("Dolby Digital downmix is now") + " " + _("enabled")
+				print('[InfoBarGenerics] [Audio] Dolby Digital downmix is now enabled')
+			if popup:
+				Notifications.AddPopup(text=message, type=MessageBox.TYPE_INFO, timeout=5, id="DDdownmixToggle")
+
+	def audioDownmixOn(self):
+		if not config.av.downmix_ac3.value:
+			self.audioDownmixToggle(False)
+
+	def audioDownmixOff(self):
+		if config.av.downmix_ac3.value:
+			self.audioDownmixToggle(False)
 
 
 class InfoBarSubserviceSelection:
@@ -4058,20 +4084,20 @@ class InfoBarHandleBsod:
 			txt += _("(Attention: There will be a restart after %d crashes.)") % maxbs
 			if writelog:
 				txt += "\n" + "-" * 80 + "\n"
-				txt += _("A crashlog was %s created in '%s'") % ((_('not'), '')[int(writelog)], config.crash.debugPath.value)
+				txt += _("A crash log was %s created in '%s'") % ((_("not"), '')[int(writelog)], config.crash.debugPath.value)
 			#if not writelog:
 			#	txt += "\n" + "-"*80 + "\n"
-			#	txt += _("(It is set that '%s' crash logs are displayed and written.\nInfo: It will always write the first, last but one and lastest crash log.)") % str(int(config.crash.bsodhide.value) or _('never'))
+			#	txt += _("(It is set that '%s' crash logs are displayed and written.\nInfo: It will always write the first, last but one and lastest crash log.)") % str(int(config.crash.bsodhide.value) or _("Never"))
 			if bsodcnt >= maxbs:
 				txt += "\n" + "-" * 80 + "\n"
 				txt += _("Warning: This is the last crash before an automatic restart is performed.\n")
 				txt += _("Should the crash counter be reset to prevent a restart?")
 				self.lastestBsodWarning = True
 			try:
-				self.session.openWithCallback(self.infoBsodCallback, MessageBox, txt, type=MessageBox.TYPE_ERROR, default=False, close_on_any_key=not self.lastestBsodWarning, showYESNO=self.lastestBsodWarning)
+				self.session.openWithCallback(self.infoBsodCallback, MessageBox, txt, type=MessageBox.TYPE_YESNO if self.lastestBsodWarning else MessageBox.TYPE_ERROR, default=False, close_on_any_key=not self.lastestBsodWarning, showYESNO=self.lastestBsodWarning)
 				self.infoBsodIsShown = True
-			except Exception as ex:
-				#print("[InfoBarHandleBsod] Exception:", ex)
+			except Exception as e:
+				#print "[InfoBarHandleBsod] Exception:", e
 				self.checkBsodTimer.stop()
 				self.checkBsodTimer.start(5000, True)
 				self.infoBsodCallback(False)
@@ -4083,4 +4109,5 @@ class InfoBarHandleBsod:
 			resetBsodCounter()
 		self.infoBsodIsShown = False
 		self.lastestBsodWarning = False
+
 #########################################################################################

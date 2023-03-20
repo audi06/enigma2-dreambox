@@ -1334,9 +1334,9 @@ void eDVBFrontend::calculateSignalQuality(int snr, int &signalquality, int &sign
 		ret = snr;
 		sat_max = 1620;
 	}
-	else if (!strcmp(m_description, "Vuplus DVB-S NIM(Si2166)")) // VU+ Zero4K
+	else if (!strcmp(m_description, "Vuplus DVB-S NIM(SI2166)")) // VU+ Zero4K
 	{
-		ret = snr;
+		ret = snr / 40;
 	}
 	else if (!strncmp(m_description, "Si216", 5)) // New models with SI tuners
 	{
@@ -1365,6 +1365,22 @@ void eDVBFrontend::calculateSignalQuality(int snr, int &signalquality, int &sign
 	else if (!strcmp(m_description, "rs6060")) // DVB-S2X Zgemma 4K
 	{
 		ret = (int)(snr / 32.5);
+	}
+	else if (!strcmp(m_description, "AVL62X1"))
+	{
+		ret = snr;
+	}
+	else if (!strcmp(m_description, "gService DVB-S2")) // SX88V2
+	{
+		ret = snr;
+	}
+	else if (!strcmp(m_description, "AVL62X1"))
+	{
+		ret = snr;
+	}
+	else if (!strcmp(m_description, "gService DVB-S2")) // SX88V2
+	{
+		ret = snr;
 	}
 
 	signalqualitydb = ret;

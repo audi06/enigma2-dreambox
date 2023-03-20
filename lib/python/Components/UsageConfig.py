@@ -856,6 +856,8 @@ def InitUsageConfig():
 
 	config.usage.boolean_graphic = ConfigSelection(default="true", choices={"false": _("no"), "true": _("yes"), "only_bool": _("yes, but not in multi selections")})
 
+	config.usage.multiboot_order = ConfigYesNo(default=True)
+
 	config.osd.alpha_teletext = ConfigSelectionNumber(default=255, stepwidth=1, min=0, max=255, wraparound=False)
 
 	config.epg = ConfigSubsection()
@@ -869,6 +871,9 @@ def InitUsageConfig():
 	config.epg.saveepg = ConfigYesNo(default=True)
 
 	config.epg.maxdays = ConfigSelectionNumber(min=1, max=365, stepwidth=1, default=7, wraparound=True)
+	config.epg.joinAbbreviatedEventNames = ConfigYesNo(default=True)
+	config.epg.eventNamePrefixes = ConfigText(default="")
+	config.epg.eventNamePrefixMode = ConfigSelection(choices=[(0, _("Off")), (1, _("Remove")), (2, _("Move to description"))])
 
 	def EpgmaxdaysChanged(configElement):
 		eEPGCache.getInstance().setEpgmaxdays(config.epg.maxdays.getValue())
@@ -1449,13 +1454,17 @@ def InitUsageConfig():
 		if configElement.value == "dvb" or not GetIPsFromNetworkInterfaces():
 			eDVBLocalTimeHandler.getInstance().setUseDVBTime(True)
 			eEPGCache.getInstance().timeUpdated()
+			if os.path.isfile('/var/spool/cron/crontabs/root'):
+				Console().ePopen("sed -i '/ntpdate-sync/d' /var/spool/cron/crontabs/root;")
 			if configElement.value == "dvb" and islink("/etc/network/if-up.d/ntpdate-sync"):
-				Console().ePopen("sed -i '/ntpdate-sync/d' /etc/cron/crontabs/root;unlink /etc/network/if-up.d/ntpdate-sync")
+				Console().ePopen("unlink /etc/network/if-up.d/ntpdate-sync")
 		else:
 			eDVBLocalTimeHandler.getInstance().setUseDVBTime(False)
 			eEPGCache.getInstance().timeUpdated()
+			if not os.path.isfile('/var/spool/cron/crontabs/root'):
+				Console().ePopen("echo '30 * * * *    /usr/bin/ntpdate-sync silent' >> /var/spool/cron/crontabs/root")
 			if not islink("/etc/network/if-up.d/ntpdate-sync"):
-				Console().ePopen("echo '30 * * * * /usr/bin/ntpdate-sync silent' >>/etc/cron/crontabs/root;ln -s /usr/bin/ntpdate-sync /etc/network/if-up.d/ntpdate-sync")
+				Console().ePopen("ln -s /usr/bin/ntpdate-sync /etc/network/if-up.d/ntpdate-sync")
 	config.ntp.timesync = ConfigSelection(default="ntp", choices=[
 		("auto", _("Auto")),
 		("dvb", _("Transponder time")),
